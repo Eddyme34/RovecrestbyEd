@@ -3,7 +3,7 @@ import argparse
 import threading
 
 parser = argparse.ArgumentParser(description = "This is the client for the multi threaded socket server!")
-parser.add_argument('--host', metavar = 'host', type = str, nargs = '?', default = '192.168.1.92')
+parser.add_argument('--host', metavar = 'host', type = str, nargs = '?', default = 'localhost')
 parser.add_argument('--port', metavar = 'port', type = int, nargs = '?', default = 9999)
 args = parser.parse_args()
 
