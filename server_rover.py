@@ -1,6 +1,16 @@
 import socket
 import argparse
+import sys
+import struct
+import base64
+import cv2
+import datetime
+import numpy as np
+import pickle
+from tkinter import *
 import threading
+import concurrent.futures
+from multiprocessing import Process, Lock
 
 parser = argparse.ArgumentParser(description = "This is the server for the multithreaded socket demo!")
 parser.add_argument('--host', metavar = 'host', type = str, nargs = '?', default = 'localhost')
@@ -11,6 +21,7 @@ print(f"Running the server on: {args.host} and port: {args.port}")
 
 sck_msg = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sck_vid = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+cap=cv2.VideoCapture(0)
 
 try:
     sck_msg.bind((args.host, args.port))
@@ -55,7 +66,7 @@ while True:
         client, ip = sck_msg.accept()
         client2, ip2 = sck_vid.accept()
         threading._start_new_thread(on_new_client,(client, ip))
-        #threading._start_new_thread(video_stream,(client2, ip2))
+        threading._start_new_thread(video_stream,(client2, ip2))
         
         
     except KeyboardInterrupt:
