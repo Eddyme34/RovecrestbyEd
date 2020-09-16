@@ -64,8 +64,11 @@ def video_conn(sck_vid):
 
         #frame = cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
         end_time = datetime.datetime.now()
-        fps = 1/(end_time-start_time).total_seconds()
-        print("Fps: ",round(fps,2))
+        try:
+            fps = 1/(end_time-start_time).total_seconds()
+            print("Fps: ",round(fps,2))
+        except ZeroDivisionError as err:
+            print("Handling run-time error:", err)
 
         # Display
         cv2.imshow('frame', frame)
