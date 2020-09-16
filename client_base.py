@@ -10,7 +10,7 @@ from tkinter import *
 from threading import Thread
 import concurrent.futures
 from multiprocessing import Process, Lock
-from inputs import get_gamepad
+from inputs import get_gamepad #pip install inputs
 
 parser = argparse.ArgumentParser(description = "This is the client for the multi threaded socket server!")
 parser.add_argument('--host', metavar = 'host', type = str, nargs = '?', default = 'localhost')
