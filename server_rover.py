@@ -5,6 +5,7 @@ import struct
 import base64
 import cv2
 import datetime
+import time
 import numpy as np
 import pickle
 from tkinter import *
@@ -87,25 +88,37 @@ def video_stream2(client, connection):#send from second camera
     client.close()
 
 def recv_cmd(client, connection):#recieve controller inputs
+
     while 1:
         msg = client.recv(1024)
-        print("recieved command " + str(msg.decode("utf-8")))
+        if msg.decode() == "":
+            break
+        else:
+            print("recieved command " + str(msg.decode("utf-8")))
 
-while True:
-    try:
-        client, ip = sck_msg.accept()
-        client2, ip2 = sck_vid.accept()
-        client3, ip3 = sck_vid2.accept()
-        conn_cmd1, addr_cmd1 = s_cmd1.accept()
-        threading._start_new_thread(on_new_client,(client, ip))
-        threading._start_new_thread(video_stream,(client2, ip2))
-        threading._start_new_thread(video_stream2,(client3, ip3))
-        threading._start_new_thread(recv_cmd,(conn_cmd1, addr_cmd1))       
+try:
+    client, ip = sck_msg.accept()
+    client2, ip2 = sck_vid.accept()
+    client3, ip3 = sck_vid2.accept()
+    conn_cmd1, addr_cmd1 = s_cmd1.accept()
+    t1 = threading.Thread(target = on_new_client,args=(client, ip), daemon = True)
+    t2 = threading.Thread(target = video_stream,args=(client2, ip2), daemon = True)
+    t3 = threading.Thread(target = video_stream2,args=(client3, ip3), daemon = True)
+    t4 = threading.Thread(target = recv_cmd,args=(conn_cmd1, addr_cmd1), daemon = True)
+    t1.start()
+    t2.start()
+    t3.start()
+    t4.start()
+    while True:
+        time.sleep(100)
         
-    except KeyboardInterrupt:
-        print(f"shutting down the server!")
-        break
-    except Exception as e:
-        print(f"error: {e}")
-
+except KeyboardInterrupt:
+    print(f"shutting down the server!")
+except Exception as e:
+    print(f"error: {e}")
+cap.stopped()
+cap1.stopped()
 sck_msg.close()
+sck_vid.close()
+sck_vid2.close()
+s_cmd1.close()

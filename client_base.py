@@ -4,10 +4,11 @@ import struct
 import base64
 import cv2
 import datetime
+import time
 import numpy as np
 import pickle
 from tkinter import *
-from threading import Thread
+import threading
 import concurrent.futures
 from multiprocessing import Process, Lock
 from inputs import get_gamepad #pip install inputs
@@ -110,7 +111,6 @@ def video_conn2(sck_vid):
             break;
 
 def send_cmd(s_cmd1):
-
     while True:
         gamepad = get_gamepad()
 
@@ -128,42 +128,42 @@ def send_cmd(s_cmd1):
                 elif event.state < 125:
                     reply = f"Left"
                     s_cmd1.sendall(reply.encode('utf-8'))
-                    
+                        
             if event.code == "BTN_TL":
                 if event.state == True:
                     reply = f"Turbo"
                     s_cmd1.sendall(reply.encode('utf-8'))
-                    
+                        
             if event.code == "BTN_TR":
                 if event.state == True:
                     reply = f"Tank"
                     s_cmd1.sendall(reply.encode('utf-8'))
-                    
+                        
             if event.code == "BTN_NORTH":
                 if event.state == True:
                     reply = f"Triangle"
                     s_cmd1.sendall(reply.encode('utf-8'))
-                    
+                        
             if event.code == "BTN_SOUTH":
                 if event.state == True:
                     reply = f"Square"
                     s_cmd1.sendall(reply.encode('utf-8'))
-                    
+                        
             if event.code == "BTN_EAST":
                 if event.state == True:
                     reply = f"Cross"
                     s_cmd1.sendall(reply.encode('utf-8'))
-                    
+                        
             if event.code == "BTN_C":
                 if event.state == True:
                     reply = f"Circle"
                     s_cmd1.sendall(reply.encode('utf-8'))
-                    
+                        
             if event.code == "BTN_TR2":
                 if event.state == True:
                     reply = f"Start"
                     s_cmd1.sendall(reply.encode('utf-8'))
-                    
+                        
             if event.code == "BTN_TL2":
                 if event.state == True:
                     reply = f"Select"
@@ -175,7 +175,7 @@ def send_cmd(s_cmd1):
                 elif event.state == 1:
                     reply = f"D pad Down"
                     s_cmd1.sendall(reply.encode('utf-8'))
-                    
+                        
             if event.code == "ABS_HAT0X":
                 if event.state == -1:
                     reply = f"D pad Left"
@@ -183,22 +183,32 @@ def send_cmd(s_cmd1):
                 elif event.state == 1:
                     reply = f"D pad Right"
                     s_cmd1.sendall(reply.encode('utf-8'))
-                    
+                        
             if event.code == "BTN_WEST":
                 if event.state == True:
                     reply = f"Top left"
                     s_cmd1.sendall(reply.encode('utf-8'))
-                    
+                        
             if event.code == "BTN_Z":
                 if event.state == True:
                     reply = f"Top right"
                     s_cmd1.sendall(reply.encode('utf-8'))
-proc1 = Thread(target=msg_conn, args=(sck_msg,))
-proc2 = Thread(target=video_conn, args=(sck_vid,))
-proc3 = Thread(target=video_conn2, args=(sck_vid2,))
-proc4 = Thread(target=send_cmd, args=(s_cmd1,))
-proc1.start()
-proc2.start()
-proc3.start()
-proc4.start()
+
+try:
+    proc1 = threading.Thread(target=msg_conn, args=(sck_msg,), daemon = True)
+    proc2 = threading.Thread(target=video_conn, args=(sck_vid,), daemon = True)
+    proc3 = threading.Thread(target=video_conn2, args=(sck_vid2,), daemon = True)
+    proc4 = threading.Thread(target=send_cmd, args=(s_cmd1,), daemon = True)
+    proc1.start()
+    proc2.start()
+    proc3.start()
+    proc4.start()
+    while True:
+        time.sleep(100)
+except KeyboardInterrupt:
+    print(f"disconnecting from the server!")
+sck_msg.close()
+sck_vid.close()
+sck_vid2.close()
+s_cmd1.close()
 
