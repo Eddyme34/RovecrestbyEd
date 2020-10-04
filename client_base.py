@@ -7,7 +7,6 @@ import datetime
 import time
 import numpy as np
 import pickle
-from tkinter import *
 import threading
 import concurrent.futures
 from multiprocessing import Process, Lock
