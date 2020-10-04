@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'">
+    <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'self'"> -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+    <title>RoveCrest GUI</title>
+  </head>
+  <body>
+    <!-- <script src = "app.js"></script> -->
+    <style>
+      .navbar{
+        background-color: orangered !important;
+      }
+    </style>
+    <nav class="navbar navbar-dark">
+        <a class="navbar-brand" href="#">RoveCrest GUI</a>
+    </nav>
+    <div class="row py-3 bg-dark">
+      <div class="col-8 h5 text-center text-light"> Rover (Front Camera) </div>
+      <div class="col-4 h5 text-center text-light"> Kill Switch </div>
+    </div>
+    <div class="row mr-2">
+      <div class="col-8">
+        <div class="embed-responsive embed-responsive-16by9">
+          <!-- <iframe src="https://www.youtube.com/watch?v=Dhrv-O9sivI" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe> -->
+          <canvas id="roverCamera"></canvas>
+        </div>
+        <!-- <img src="./img/videobuffering.jpg" class="img-fluid" alt="live stream of the rover"> -->
+      </div>
+      <div class="col-4">
+        <!-- first progress bar -->
+        <div class="row pt-2 h5"> Something </div>
+        <div class="progress">
+          <div class="progress-bar bg-success" role="progressbar" style="width: 25%" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        <!-- second progress bar -->
+        <div class="row pt-2 h5"> Smth2 </div>
+        <div class="progress">
+          <div class="progress-bar bg-info" role="progressbar" style="width: 50%" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        <!-- third progress bar -->
+        <div class="row pt-2 h5"> Smth3 </div>
+        <div class="progress">
+          <div class="progress-bar bg-warning" role="progressbar" style="width: 75%" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        <!-- forth progress bar -->
+        <div class="row pt-2 h5"> Temperature </div>
+        <div class="progress">
+          <div class="progress-bar bg-danger" role="progressbar" style="width: 100%" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        <div class="row justify-content-center mt-3">
+            <button type="button" class="btn btn-outline-danger">KILL!</button>
+        </div>
+        
+      </div>
+    </div>
+    <div class="row py-3 bg-dark">
+      <div class="col-6 h5 text-center text-light"> Rover Camera (Robotic Arm) </div>
+      <div class="col-6 h5 text-center text-light"> Inside Camera (Bio Team) </div>
+    </div>
+    <div class="row">
+      <div class="col-6">
+        <img src="./img/videobuffering.jpg" class="img-fluid" alt="live stream of the rover">
+      </div>
+      <div class="col-6">
+        <img src="./img/videobuffering.jpg" class="img-fluid" alt="live stream of the rover">
+      </div>
+    </div>
+    <div class="row py-3 bg-dark">
+      <div class="col-6 h5 text-center text-light"> Navigation </div>
+      <div class="col-6 h5 text-center text-light"> Antenna </div>
+    </div>
+    <div class="row">
+      <div class="col-6">
+          <img src="./img/radar.png" class="img-fluid" alt="rader coordinate">
+      </div>
+      <div class="col-6 text-center">
+        <button type="button" class="btn btn-outline-primary m-3"> Move Left </button>
+        <button type="button" class="btn btn-outline-primary m-3"> Move Right </button>
+      </div>
+    </div>
+
+    <!-- You can also require other files to run in this process -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="./renderer.js"></script>
+    <!-- <script async src="opencv.js" onload="onOpenCvReady();" type="text/javascript"></script> -->
+
+    <script>
+      const {ipcRenderer} = require('electron');
+      const jimp = require('jimp');
+      window.$ = window.cv = require('./opencv.js');
+
+      ipcRenderer.on('rover', (event, data) => {
+        // DEBUG: Print frame data buffer
+        // console.log(data);
+
+        // Load frame data buffer with Jimp
+        jimp.read(Buffer.from(data, 'base64')).then(jimpSrc => {
+          // Create cv.Mat from image using bitmap property
+          const frame = cv.matFromImageData(jimpSrc.bitmap);
+          // Show cv.Mat on the canvas.
+          cv.imshow('roverCamera', frame);
+
+          // Free memory allocated in Emscripten's heap
+          frame.delete();
+        })
+        .catch(err => {
+          console.error(err)
+        })
+      });
+    </script>
+  </body>
+</html>
