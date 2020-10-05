@@ -13,15 +13,21 @@ let mainWindow
 // Sockets
 const SCK_MSG_PORT = 9999
 const SCK_VID_PORT = 1234
+const SCK_VID2_PORT = 8080
+const S_CMD1_PORT = 1235
 let sckVidClient
 let sckMsgClient
+let sckVid2Client
+let sckCmd1Port
 
 // Video variables
 const FRAME_SIZE_NOT_READY = -1         // Used for `frameSize` variable to indicate
                                         // that frameSize is not known yet.
 const FRAME_PAYLOAD_SIZE = 4            // Frame size is specified in 4 bits.
 let frameSize = FRAME_SIZE_NOT_READY;   // Global variable that tracks frameSize, -1 if not ready.
+let frameSize2 = FRAME_SIZE_NOT_READY;   // Global variable that tracks frameSize, -1 if not ready.
 let videoDataBuffer = Buffer.alloc(0);  // Global variable that tracks frame data.
+let videoDataBuffer2 = Buffer.alloc(0); // Global variable that tracks frame data from video 2.
 
 
 function createWindow () {
@@ -56,6 +62,8 @@ function createWindow () {
     app.quit();
     sckMsgClient.destroy();
     sckVidClient.destroy();
+    sckVid2Client.destroy();
+    sckCmd1Port.destroy();
   })
 }
 
@@ -114,6 +122,34 @@ function attachCameraFeed(webContents) {
   sckMsgClient.on('close', function() {
     console.log('Message connection closed');
   });
+
+  sckVid2Client = new net.Socket();
+  sckVid2Client.connect(SCK_VID2_PORT, '127.0.0.1', function() {
+    console.log("Connected to video 2 socket");
+  });
+
+  sckVid2Client.on('data', function(data) {
+    // Accumalate video data buffer.
+    videoDataBuffer2 = Buffer.concat([videoDataBuffer2, data]);
+    // Process video data, sending video to main window if needed.
+    processVidData(videoDataBuffer2, webContents);
+  });
+
+  sckVid2Client.on('close', function() {
+    console.log('Message connection closed');
+  });
+
+  sckCmd1Port = new net.Socket();
+  sckCmd1Port.connect(S_CMD1_PORT, '127.0.0.1', function() {
+    console.log("Connected to cmd 1 socket");
+  });
+
+  sckCmd1Port.on('data', function(data) {
+  });
+
+  sckCmd1Port.on('close', function() {
+    console.log('Message connection closed');
+  });
 }
 
 /**
@@ -144,5 +180,29 @@ async function processVidData(data, contents) {
     videoDataBuffer = videoDataBuffer.slice(frameSize);
     // Reset frame size.
     frameSize = FRAME_SIZE_NOT_READY;
+  }
+}
+
+async function processVidData2(data, contents) {
+  // If frame size has not been set yet, try to fetch it from buffer
+  if (frameSize2 == FRAME_SIZE_NOT_READY) {
+    try {
+      frameSize2 = videoDataBuffer2.readInt32LE();
+      videoDataBuffer2 = videoDataBuffer2.slice(FRAME_PAYLOAD_SIZE);
+    } catch { }
+  }
+
+  // If frame size is ready and frame data buffer is ready, then read frame
+  if (frameSize2 != FRAME_SIZE_NOT_READY && videoDataBuffer2.length >= frameSize2) {
+    // Retrieve frame data.
+    const frameData = videoDataBuffer2.slice(0, frameSize2);
+
+    // Send data to frontend.
+    contents.send('rover2', frameData.toString());
+
+    // Remove frame data from accumulated data buffer.
+    videoDataBuffer2 = videoDataBuffer2.slice(frameSize2);
+    // Reset frame size.
+    frameSize2 = FRAME_SIZE_NOT_READY;
   }
 }

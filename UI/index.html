@@ -64,7 +64,8 @@
     </div>
     <div class="row">
       <div class="col-6">
-        <img src="./img/videobuffering.jpg" class="img-fluid" alt="live stream of the rover">
+        <!-- <img src="./img/videobuffering.jpg" class="img-fluid" alt="live stream of the rover"> -->
+        <canvas id="roverCamera2"></canvas>
       </div>
       <div class="col-6">
         <img src="./img/videobuffering.jpg" class="img-fluid" alt="live stream of the rover">
@@ -106,6 +107,25 @@
           const frame = cv.matFromImageData(jimpSrc.bitmap);
           // Show cv.Mat on the canvas.
           cv.imshow('roverCamera', frame);
+
+          // Free memory allocated in Emscripten's heap
+          frame.delete();
+        })
+        .catch(err => {
+          console.error(err)
+        })
+      });
+
+      ipcRenderer.on('rover2', (event, data) => {
+        // DEBUG: Print frame data buffer
+        // console.log(data);
+
+        // Load frame data buffer with Jimp
+        jimp.read(Buffer.from(data, 'base64')).then(jimpSrc => {
+          // Create cv.Mat from image using bitmap property
+          const frame = cv.matFromImageData(jimpSrc.bitmap);
+          // Show cv.Mat on the canvas.
+          cv.imshow('roverCamera2', frame);
 
           // Free memory allocated in Emscripten's heap
           frame.delete();
