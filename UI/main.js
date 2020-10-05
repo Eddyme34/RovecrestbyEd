@@ -13,8 +13,12 @@ let mainWindow
 // Sockets
 const SCK_MSG_PORT = 9999
 const SCK_VID_PORT = 1234
+const SCK_VID2_PORT = 8080
+const S_CMD1_PORT = 1235
 let sckVidClient
 let sckMsgClient
+let sckVid2Client
+let sckCmd1Port
 
 // Video variables
 const FRAME_SIZE_NOT_READY = -1         // Used for `frameSize` variable to indicate
@@ -56,6 +60,8 @@ function createWindow () {
     app.quit();
     sckMsgClient.destroy();
     sckVidClient.destroy();
+    sckVid2Client.destroy();
+    sckCmd1Port.destroy();
   })
 }
 
@@ -112,6 +118,30 @@ function attachCameraFeed(webContents) {
   });
 
   sckMsgClient.on('close', function() {
+    console.log('Message connection closed');
+  });
+
+  sckVid2Client = new net.Socket();
+  sckVid2Client.connect(SCK_VID2_PORT, '127.0.0.1', function() {
+    console.log("Connected to video 2 socket");
+  });
+
+  sckVid2Client.on('data', function(data) {
+  });
+
+  sckVid2Client.on('close', function() {
+    console.log('Message connection closed');
+  });
+
+  sckCmd1Port = new net.Socket();
+  sckCmd1Port.connect(S_CMD1_PORT, '127.0.0.1', function() {
+    console.log("Connected to cmd 1 socket");
+  });
+
+  sckCmd1Port.on('data', function(data) {
+  });
+
+  sckCmd1Port.on('close', function() {
     console.log('Message connection closed');
   });
 }
