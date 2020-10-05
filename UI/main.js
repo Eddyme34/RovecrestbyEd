@@ -25,7 +25,9 @@ const FRAME_SIZE_NOT_READY = -1         // Used for `frameSize` variable to indi
                                         // that frameSize is not known yet.
 const FRAME_PAYLOAD_SIZE = 4            // Frame size is specified in 4 bits.
 let frameSize = FRAME_SIZE_NOT_READY;   // Global variable that tracks frameSize, -1 if not ready.
+let frameSize2 = FRAME_SIZE_NOT_READY;   // Global variable that tracks frameSize, -1 if not ready.
 let videoDataBuffer = Buffer.alloc(0);  // Global variable that tracks frame data.
+let videoDataBuffer2 = Buffer.alloc(0); // Global variable that tracks frame data from video 2.
 
 
 function createWindow () {
@@ -127,6 +129,10 @@ function attachCameraFeed(webContents) {
   });
 
   sckVid2Client.on('data', function(data) {
+    // Accumalate video data buffer.
+    videoDataBuffer2 = Buffer.concat([videoDataBuffer2, data]);
+    // Process video data, sending video to main window if needed.
+    processVidData(videoDataBuffer2, webContents);
   });
 
   sckVid2Client.on('close', function() {
@@ -174,5 +180,29 @@ async function processVidData(data, contents) {
     videoDataBuffer = videoDataBuffer.slice(frameSize);
     // Reset frame size.
     frameSize = FRAME_SIZE_NOT_READY;
+  }
+}
+
+async function processVidData2(data, contents) {
+  // If frame size has not been set yet, try to fetch it from buffer
+  if (frameSize2 == FRAME_SIZE_NOT_READY) {
+    try {
+      frameSize2 = videoDataBuffer2.readInt32LE();
+      videoDataBuffer2 = videoDataBuffer2.slice(FRAME_PAYLOAD_SIZE);
+    } catch { }
+  }
+
+  // If frame size is ready and frame data buffer is ready, then read frame
+  if (frameSize2 != FRAME_SIZE_NOT_READY && videoDataBuffer2.length >= frameSize2) {
+    // Retrieve frame data.
+    const frameData = videoDataBuffer2.slice(0, frameSize2);
+
+    // Send data to frontend.
+    contents.send('rover2', frameData.toString());
+
+    // Remove frame data from accumulated data buffer.
+    videoDataBuffer2 = videoDataBuffer2.slice(frameSize2);
+    // Reset frame size.
+    frameSize2 = FRAME_SIZE_NOT_READY;
   }
 }
