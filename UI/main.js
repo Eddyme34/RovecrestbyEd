@@ -54,7 +54,7 @@ function createWindow () {
   mainWindow.loadFile('index.html')
 
   // Open the DevTools.
-  // mainWindow.webContents.openDevTools()
+  mainWindow.webContents.openDevTools()
 
   // Emitted when the window is closed.
   mainWindow.on('closed', function () {
@@ -177,7 +177,7 @@ async function processVidData(data, contents) {
     const frameData = videoDataBuffer.slice(0, frameSize);
 
     // Send data to frontend.
-    contents.send('rover', frameData.toString());
+    contents.send('rover', frameData.toString(), startTime);
     const milliseconds = Date.now() - startTime;
     const seconds = milliseconds / 1000;
     const fps = 1 / seconds;
@@ -209,7 +209,7 @@ async function processVidData2(data, contents) {
     const frameData = videoDataBuffer2.slice(0, frameSize2);
 
     // Send data to frontend.
-    contents.send('rover2', frameData.toString());
+    contents.send('rover2', frameData.toString(), startTime2);
     const milliseconds = Date.now() - startTime2;
     const seconds = milliseconds / 1000;
     const fps = 1 / seconds;
