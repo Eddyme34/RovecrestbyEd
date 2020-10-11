@@ -25,7 +25,9 @@ const FRAME_SIZE_NOT_READY = -1         // Used for `frameSize` variable to indi
                                         // that frameSize is not known yet.
 const FRAME_PAYLOAD_SIZE = 4            // Frame size is specified in 4 bits.
 let frameSize = FRAME_SIZE_NOT_READY;   // Global variable that tracks frameSize, -1 if not ready.
-let frameSize2 = FRAME_SIZE_NOT_READY;   // Global variable that tracks frameSize, -1 if not ready.
+let frameSize2 = FRAME_SIZE_NOT_READY;  // Global variable that tracks frameSize, -1 if not ready.
+let startTime;                          // Global variable to start timer for computing FPS
+let startTime2;                         // Global variable to start timer for computing FPS
 let videoDataBuffer = Buffer.alloc(0);  // Global variable that tracks frame data.
 let videoDataBuffer2 = Buffer.alloc(0); // Global variable that tracks frame data from video 2.
 
@@ -162,6 +164,7 @@ function attachCameraFeed(webContents) {
 async function processVidData(data, contents) {
   // If frame size has not been set yet, try to fetch it from buffer
   if (frameSize == FRAME_SIZE_NOT_READY) {
+    startTime = Date.now();
     try {
       frameSize = videoDataBuffer.readInt32LE();
       videoDataBuffer = videoDataBuffer.slice(FRAME_PAYLOAD_SIZE);
@@ -175,6 +178,13 @@ async function processVidData(data, contents) {
 
     // Send data to frontend.
     contents.send('rover', frameData.toString());
+    const milliseconds = Date.now() - startTime;
+    const seconds = milliseconds / 1000;
+    const fps = 1 / seconds;
+    console.log('----------------------');
+    // console.log(`Video 1 mill: ${milliseconds}`);
+    // console.log(`Video 1 sec: ${seconds}`);
+    console.log(`Video 1 FPS: ${fps}`);
 
     // Remove frame data from accumulated data buffer.
     videoDataBuffer = videoDataBuffer.slice(frameSize);
@@ -186,6 +196,7 @@ async function processVidData(data, contents) {
 async function processVidData2(data, contents) {
   // If frame size has not been set yet, try to fetch it from buffer
   if (frameSize2 == FRAME_SIZE_NOT_READY) {
+    startTime2 = Date.now();
     try {
       frameSize2 = videoDataBuffer2.readInt32LE();
       videoDataBuffer2 = videoDataBuffer2.slice(FRAME_PAYLOAD_SIZE);
@@ -199,6 +210,13 @@ async function processVidData2(data, contents) {
 
     // Send data to frontend.
     contents.send('rover2', frameData.toString());
+    const milliseconds = Date.now() - startTime2;
+    const seconds = milliseconds / 1000;
+    const fps = 1 / seconds;
+    console.log('----------------------');
+    // console.log(`Video 2 mill: ${milliseconds}`);
+    // console.log(`Video 2 sec: ${seconds}`);
+    console.log(`Video 2 FPS: ${fps}`);
 
     // Remove frame data from accumulated data buffer.
     videoDataBuffer2 = videoDataBuffer2.slice(frameSize2);
