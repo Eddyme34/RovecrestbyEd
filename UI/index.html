@@ -97,7 +97,7 @@
       const jimp = require('jimp');
       window.$ = window.cv = require('./opencv.js');
 
-      ipcRenderer.on('rover', (event, data) => {
+      ipcRenderer.on('rover', (event, data, startTime) => {
         // DEBUG: Print frame data buffer
         // console.log(data);
 
@@ -107,6 +107,14 @@
           const frame = cv.matFromImageData(jimpSrc.bitmap);
           // Show cv.Mat on the canvas.
           cv.imshow('roverCamera', frame);
+          // Compute FPS
+          const milliseconds = Date.now() - startTime;
+          const seconds = milliseconds / 1000;
+          const fps = 1 / seconds;
+          console.log('----------------------');
+          // console.log(`Video 1 mill: ${milliseconds}`);
+          // console.log(`Video 1 sec: ${seconds}`);
+          console.log(`Video 1 FPS: ${fps}`);
 
           // Free memory allocated in Emscripten's heap
           frame.delete();
@@ -116,7 +124,7 @@
         })
       });
 
-      ipcRenderer.on('rover2', (event, data) => {
+      ipcRenderer.on('rover2', (event, data, startTime) => {
         // DEBUG: Print frame data buffer
         // console.log(data);
 
@@ -126,6 +134,14 @@
           const frame = cv.matFromImageData(jimpSrc.bitmap);
           // Show cv.Mat on the canvas.
           cv.imshow('roverCamera2', frame);
+          // Compute FPS
+          const milliseconds = Date.now() - startTime;
+          const seconds = milliseconds / 1000;
+          const fps = 1 / seconds;
+          console.log('----------------------');
+          // console.log(`Video 2 mill: ${milliseconds}`);
+          // console.log(`Video 2 sec: ${seconds}`);
+          console.log(`Video 2 FPS: ${fps}`);
 
           // Free memory allocated in Emscripten's heap
           frame.delete();
