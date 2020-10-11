@@ -132,7 +132,7 @@ function attachCameraFeed(webContents) {
     // Accumalate video data buffer.
     videoDataBuffer2 = Buffer.concat([videoDataBuffer2, data]);
     // Process video data, sending video to main window if needed.
-    processVidData(videoDataBuffer2, webContents);
+    processVidData2(videoDataBuffer2, webContents);
   });
 
   sckVid2Client.on('close', function() {
