@@ -97,58 +97,83 @@
       const jimp = require('jimp');
       window.$ = window.cv = require('./opencv.js');
 
-      ipcRenderer.on('rover', (event, data, startTime) => {
+      let previousRenderTime = Date.now();
+      let ALLOW_JIMP = true;
+      ipcRenderer.on('rover', (event, data, _) => {
+        console.log('----------------------');
         // DEBUG: Print frame data buffer
         // console.log(data);
 
-        // Load frame data buffer with Jimp
-        jimp.read(Buffer.from(data, 'base64')).then(jimpSrc => {
-          // Create cv.Mat from image using bitmap property
-          const frame = cv.matFromImageData(jimpSrc.bitmap);
-          // Show cv.Mat on the canvas.
-          cv.imshow('roverCamera', frame);
-          // Compute FPS
-          const milliseconds = Date.now() - startTime;
-          const seconds = milliseconds / 1000;
-          const fps = 1 / seconds;
-          console.log('----------------------');
-          // console.log(`Video 1 mill: ${milliseconds}`);
-          // console.log(`Video 1 sec: ${seconds}`);
-          console.log(`Video 1 FPS: ${fps}`);
+        if (ALLOW_JIMP) {
+          ALLOW_JIMP = false;
+          // Load frame data buffer with Jimp
+          jimp.read(Buffer.from(data, 'base64')).then(jimpSrc => {
+            // Create cv.Mat from image using bitmap property
+            const frame = cv.matFromImageData(jimpSrc.bitmap);
+            // Show cv.Mat on the canvas.
+            cv.imshow('roverCamera', frame);
+            // Compute FPS
+            const milliseconds = Date.now() - previousRenderTime;
+            const seconds = milliseconds / 1000;
+            const fps = 1 / seconds;
+            // console.log(`Video 1 mill: ${milliseconds}`);
+            // console.log(`Video 1 sec: ${seconds}`);
+            console.log(`Video 1 FPS: ${fps}`);
+            // Prepare for next FPS calculation
+            previousRenderTime = Date.now();
 
-          // Free memory allocated in Emscripten's heap
-          frame.delete();
-        })
-        .catch(err => {
-          console.error(err)
-        })
+
+            // Free memory allocated in Emscripten's heap
+            frame.delete();
+
+            // Jimp is free again
+            ALLOW_JIMP = true;
+          })
+          .catch(err => {
+            console.error(err)
+          })
+        } else {
+          // DEBUG
+          // console.log('Frame was skipped to avoid overworking jimp!');
+        }
       });
 
-      ipcRenderer.on('rover2', (event, data, startTime) => {
+      let previousRenderTime2 = Date.now();
+      let ALLOW_JIMP_2 = true;
+      ipcRenderer.on('rover2', (event, data, _) => {
         // DEBUG: Print frame data buffer
         // console.log(data);
 
-        // Load frame data buffer with Jimp
-        jimp.read(Buffer.from(data, 'base64')).then(jimpSrc => {
-          // Create cv.Mat from image using bitmap property
-          const frame = cv.matFromImageData(jimpSrc.bitmap);
-          // Show cv.Mat on the canvas.
-          cv.imshow('roverCamera2', frame);
-          // Compute FPS
-          const milliseconds = Date.now() - startTime;
-          const seconds = milliseconds / 1000;
-          const fps = 1 / seconds;
-          console.log('----------------------');
-          // console.log(`Video 2 mill: ${milliseconds}`);
-          // console.log(`Video 2 sec: ${seconds}`);
-          console.log(`Video 2 FPS: ${fps}`);
+        if (ALLOW_JIMP_2) {
+          ALLOW_JIMP_2 = false;
+          // Load frame data buffer with Jimp
+          jimp.read(Buffer.from(data, 'base64')).then(jimpSrc => {
+            // Create cv.Mat from image using bitmap property
+            const frame = cv.matFromImageData(jimpSrc.bitmap);
+            // Show cv.Mat on the canvas.
+            cv.imshow('roverCamera2', frame);
+            // Compute FPS
+            const milliseconds = Date.now() - previousRenderTime2;
+            const seconds = milliseconds / 1000;
+            const fps = 1 / seconds;
+            console.log('----------------------');
+            // console.log(`Video 2 mill: ${milliseconds}`);
+            // console.log(`Video 2 sec: ${seconds}`);
+            console.log(`Video 2 FPS: ${fps}`);
 
-          // Free memory allocated in Emscripten's heap
-          frame.delete();
-        })
-        .catch(err => {
-          console.error(err)
-        })
+            // Free memory allocated in Emscripten's heap
+            frame.delete();
+
+            // Jimp is free again
+            ALLOW_JIMP_2 = true;
+          })
+          .catch(err => {
+            console.error(err)
+          })
+        } else {
+          // DEBUG
+          // console.log('Frame was skipped to avoid overworking jimp!');
+        }
       });
     </script>
   </body>
