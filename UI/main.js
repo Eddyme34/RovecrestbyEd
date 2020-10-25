@@ -1,36 +1,12 @@
 // Modules to control application life and create native browser window
 const { app, BrowserWindow, webContents } = require('electron')
-const jimp = require('jimp');
 const net = require('net');
 const path = require('path');
-const cv = require('./opencv.js');
 
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow
-
-// Sockets
-const SCK_MSG_PORT = 9999
-const SCK_VID_PORT = 1234
-const SCK_VID2_PORT = 8080
-const S_CMD1_PORT = 1235
-let sckVidClient
-let sckMsgClient
-let sckVid2Client
-let sckCmd1Port
-
-// Video variables
-const FRAME_SIZE_NOT_READY = -1         // Used for `frameSize` variable to indicate
-                                        // that frameSize is not known yet.
-const FRAME_PAYLOAD_SIZE = 4            // Frame size is specified in 4 bits.
-let frameSize = FRAME_SIZE_NOT_READY;   // Global variable that tracks frameSize, -1 if not ready.
-let frameSize2 = FRAME_SIZE_NOT_READY;  // Global variable that tracks frameSize, -1 if not ready.
-let startTime;                          // Global variable to start timer for computing FPS
-let startTime2;                         // Global variable to start timer for computing FPS
-let videoDataBuffer = Buffer.alloc(0);  // Global variable that tracks frame data.
-let videoDataBuffer2 = Buffer.alloc(0); // Global variable that tracks frame data from video 2.
-
 
 function createWindow () {
   // Create the browser window.
@@ -90,6 +66,151 @@ app.on('activate', function () {
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
 
+// Sockets
+const SCK_MSG_PORT = 9999
+const SCK_VID_PORT = 1234
+const SCK_VID2_PORT = 8080
+const S_CMD1_PORT = 1235
+let sckVidClient
+let sckMsgClient
+let sckVid2Client
+let sckCmd1Port
+
+/**
+ * Encapsulates video data
+ */
+class VideoData {
+  constructor(id) {
+    this.id = id;
+
+    this.frameSize = VideoData.FRAME_SIZE_NOT_READY;
+    this.videoDataBuffer = Buffer.alloc(0);
+    this.startTime = null;
+  }
+
+  static FRAME_SIZE_NOT_READY = -1         // Used for `frameSize` variable to indicate
+                                           // that frameSize is not known yet.
+  static FRAME_PAYLOAD_SIZE = 4            // Frame size is specified in 4 bits.
+
+  /**
+   * Returns video data id
+   */
+  getID() {
+    return this.id;
+  }
+
+  /**
+   * Returns video data buffer.
+   */
+  getVideoDataBuffer() {
+    return this.videoDataBuffer;
+  }
+
+  /**
+   * Return start time of a new frame processing.
+   * If no frame is being processed, return null.
+   */
+  getStartTime() {
+    return this.startTime;
+  }
+
+  /**
+   * Call when new frame is being read to start timer.
+   */
+  startTimer() {
+    this.startTime = Date.now();
+  }
+
+  /**
+   * Returns size of frame being processed or about to be processed.
+   * Returns -1 if no frame is being processed or about to be processed.
+   */
+  getFrameSize() {
+    return this.frameSize;
+  }
+
+  /**
+   * Returns true if the frame size of next frame is ready.
+   */
+  hasFrameSize() {
+    return this.frameSize != VideoData.FRAME_SIZE_NOT_READY;
+  }
+
+  /**
+   * Returns true if both the frame size and frame data is ready to
+   * be read.
+   */
+  isReadFrameReady() {
+    return this.hasFrameSize() && this.videoDataBuffer.length >= this.frameSize;
+  }
+
+  /**
+   * Reads (and removes) the frame data from the buffer.
+   *
+   * If frame data is not ready to be read, returns empty buffer.
+   */
+  readFrame() {
+    if (this.isReadFrameReady()) {
+      // Retrieve frame data.
+      const frameData = this.videoDataBuffer.slice(0, this.frameSize);
+
+      // Remove frame data from accumulated data buffer.
+      this.videoDataBuffer = this.videoDataBuffer.slice(this.frameSize);
+      // Reset frame size.
+      this.frameSize = VideoData.FRAME_SIZE_NOT_READY;
+
+      return frameData;
+    } else {
+      return Buffer.alloc(0);
+    }
+  }
+
+  /**
+   * Appends data to buffer.
+   * @param {Buffer} data Data to append to buffer.
+   */
+  appendBuffer(data) {
+    this.videoDataBuffer = Buffer.concat([this.videoDataBuffer, data]);
+
+    // If frame size has not been set yet, try to fetch it from buffer
+    if (!this.hasFrameSize()) {
+      this.startTimer();
+      try {
+        this.frameSize = this.videoDataBuffer.readInt32LE();
+        this.videoDataBuffer = this.videoDataBuffer.slice(VideoData.FRAME_PAYLOAD_SIZE);
+      } catch { }
+    }
+  }
+}
+
+/**
+ * Process the fully accumulated data buffer, including reading frame size,
+ * reading frame data, and sending frame data to main window.
+ * @param {Buffer} data The data read from the socket.
+ * @param {WebContents} contents The event emitter for the window to send to.
+ * @param {VideoData} videoData Video data.
+ */
+async function processVideoData(data, contents, videoData) {
+  videoData.appendBuffer(data);
+
+  // If frame size is ready and frame data buffer is ready, then read frame
+  if (videoData.isReadFrameReady()) {
+    // Retrieve frame data.
+    const frameData = videoData.readFrame();
+
+    // Send data to frontend.
+    contents.send(videoData.getID(), frameData.toString());
+
+    const milliseconds = Date.now() - videoData.getStartTime();
+    const seconds = milliseconds / 1000;
+    const fps = 1 / seconds;
+    console.log('----------------------');
+    // console.log(`Video 1 mill: ${milliseconds}`);
+    // console.log(`Video 1 sec: ${seconds}`);
+    console.log(`${videoData.getID()} FPS: ${fps}`);
+  }
+}
+
 /**
  * Set up sockets needed for
  * @param {WebContents} webContents Main window web contents.
@@ -101,11 +222,10 @@ function attachCameraFeed(webContents) {
     console.log("Connected to video socket");
   });
 
+  const videoData = new VideoData('rover');
   sckVidClient.on('data', function(data) {
-    // Accumalate video data buffer.
-    videoDataBuffer = Buffer.concat([videoDataBuffer, data]);
     // Process video data, sending video to main window if needed.
-    processVidData(videoDataBuffer, webContents);
+    processVideoData(data, webContents, videoData);
   });
 
   sckVidClient.on('close', function() {
@@ -130,11 +250,10 @@ function attachCameraFeed(webContents) {
     console.log("Connected to video 2 socket");
   });
 
+  const videoData2 = new VideoData('rover2');
   sckVid2Client.on('data', function(data) {
-    // Accumalate video data buffer.
-    videoDataBuffer2 = Buffer.concat([videoDataBuffer2, data]);
     // Process video data, sending video to main window if needed.
-    processVidData2(videoDataBuffer2, webContents);
+    processVideoData(data, webContents, videoData2);
   });
 
   sckVid2Client.on('close', function() {
@@ -152,75 +271,4 @@ function attachCameraFeed(webContents) {
   sckCmd1Port.on('close', function() {
     console.log('Message connection closed');
   });
-}
-
-/**
- * Process the fully accumulated data buffer, including reading frame size,
- * reading frame data, and sending frame data to main window.
- *
- * @param {Buffer} data The accumulated data buffer.
- * @param {WebContents} contents The event emitter for the window to send to.
- */
-async function processVidData(data, contents) {
-  // If frame size has not been set yet, try to fetch it from buffer
-  if (frameSize == FRAME_SIZE_NOT_READY) {
-    startTime = Date.now();
-    try {
-      frameSize = videoDataBuffer.readInt32LE();
-      videoDataBuffer = videoDataBuffer.slice(FRAME_PAYLOAD_SIZE);
-    } catch { }
-  }
-
-  // If frame size is ready and frame data buffer is ready, then read frame
-  if (frameSize != FRAME_SIZE_NOT_READY && videoDataBuffer.length >= frameSize) {
-    // Retrieve frame data.
-    const frameData = videoDataBuffer.slice(0, frameSize);
-
-    // Send data to frontend.
-    contents.send('rover', frameData.toString(), startTime);
-    const milliseconds = Date.now() - startTime;
-    const seconds = milliseconds / 1000;
-    const fps = 1 / seconds;
-    console.log('----------------------');
-    // console.log(`Video 1 mill: ${milliseconds}`);
-    // console.log(`Video 1 sec: ${seconds}`);
-    console.log(`Video 1 FPS: ${fps}`);
-
-    // Remove frame data from accumulated data buffer.
-    videoDataBuffer = videoDataBuffer.slice(frameSize);
-    // Reset frame size.
-    frameSize = FRAME_SIZE_NOT_READY;
-  }
-}
-
-async function processVidData2(data, contents) {
-  // If frame size has not been set yet, try to fetch it from buffer
-  if (frameSize2 == FRAME_SIZE_NOT_READY) {
-    startTime2 = Date.now();
-    try {
-      frameSize2 = videoDataBuffer2.readInt32LE();
-      videoDataBuffer2 = videoDataBuffer2.slice(FRAME_PAYLOAD_SIZE);
-    } catch { }
-  }
-
-  // If frame size is ready and frame data buffer is ready, then read frame
-  if (frameSize2 != FRAME_SIZE_NOT_READY && videoDataBuffer2.length >= frameSize2) {
-    // Retrieve frame data.
-    const frameData = videoDataBuffer2.slice(0, frameSize2);
-
-    // Send data to frontend.
-    contents.send('rover2', frameData.toString(), startTime2);
-    const milliseconds = Date.now() - startTime2;
-    const seconds = milliseconds / 1000;
-    const fps = 1 / seconds;
-    console.log('----------------------');
-    // console.log(`Video 2 mill: ${milliseconds}`);
-    // console.log(`Video 2 sec: ${seconds}`);
-    console.log(`Video 2 FPS: ${fps}`);
-
-    // Remove frame data from accumulated data buffer.
-    videoDataBuffer2 = videoDataBuffer2.slice(frameSize2);
-    // Reset frame size.
-    frameSize2 = FRAME_SIZE_NOT_READY;
-  }
 }

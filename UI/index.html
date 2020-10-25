@@ -25,12 +25,11 @@
     </div>
     <div class="row mr-2">
       <div class="col-8">
-        <div class="embed-responsive embed-responsive-16by9">
+        <!-- <div class="embed-responsive embed-responsive-16by9"> -->
           <!-- <iframe src="https://www.youtube.com/watch?v=Dhrv-O9sivI" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe> -->
-          <!-- <canvas id="roverCamera"></canvas> -->
-          <p id="roverCameraFPS"></p>
-          <canvas id="roverCamera" width="680" height="480"></canvas>
-        </div>
+        <!-- </div> -->
+        <p id="roverCameraFPS"></p>
+        <canvas id="roverCamera"></canvas>
         <!-- <img src="./img/videobuffering.jpg" class="img-fluid" alt="live stream of the rover"> -->
       </div>
       <div class="col-4">
@@ -57,7 +56,6 @@
         <div class="row justify-content-center mt-3">
             <button type="button" class="btn btn-outline-danger">KILL!</button>
         </div>
-        
       </div>
     </div>
     <div class="row py-3 bg-dark">
@@ -68,7 +66,7 @@
       <div class="col-6">
         <!-- <img src="./img/videobuffering.jpg" class="img-fluid" alt="live stream of the rover"> -->
         <p id="roverCameraFPS2"></p>
-        <canvas id="roverCamera2" width="680" height="480"></canvas>
+        <canvas id="roverCamera2"></canvas>
       </div>
       <div class="col-6">
         <img src="./img/videobuffering.jpg" class="img-fluid" alt="live stream of the rover">
@@ -93,83 +91,5 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
     <script src="./renderer.js"></script>
-    <!-- <script async src="opencv.js" onload="onOpenCvReady();" type="text/javascript"></script> -->
-
-    <script>
-      const {ipcRenderer} = require('electron');
-      const jimp = require('jimp');
-      window.$ = window.cv = require('./opencv.js');
-
-      const PREFIX = 'data:image/jpeg;base64,';
-
-      let previousRenderTime = Date.now();
-      let ALLOW_JIMP = true;
-      ipcRenderer.on('rover', (event, data, _) => {
-        console.log('----------------------');
-        // DEBUG: Print frame data buffer
-        // console.log(data);
-
-        if (ALLOW_JIMP) {
-          ALLOW_JIMP = false;
-
-          var canvas = document.getElementById("roverCamera");
-          var ctx = canvas.getContext("2d");
-
-          var image = new Image();
-          image.onload = function() {
-            ctx.drawImage(image, 0, 0);
-            // TODO(benlee12): Figure out why this isn't working.
-            // canvas.width = image.width;
-            // canvas.height = image.height
-            const milliseconds = Date.now() - previousRenderTime;
-            const seconds = milliseconds / 1000;
-            const fps = 1 / seconds;
-            console.log(`Video 1 FPS: ${fps}`);
-            document.getElementById('roverCameraFPS').innerText = fps;
-            previousRenderTime = Date.now();
-            ALLOW_JIMP = true;
-          };
-          image.src = PREFIX + data;
-        } else {
-          // DEBUG
-          // console.log('Frame was skipped to avoid overworking jimp!');
-        }
-      });
-
-      let previousRenderTime2 = Date.now();
-      let ALLOW_JIMP_2 = true;
-      ipcRenderer.on('rover2', (event, data, _) => {
-        // DEBUG: Print frame data buffer
-        // console.log(data);
-
-        if (ALLOW_JIMP_2) {
-          ALLOW_JIMP_2 = false;
-
-          var canvas = document.getElementById("roverCamera2");
-          var ctx = canvas.getContext("2d");
-
-          var image = new Image();
-          image.onload = function() {
-            canvas.width = image.width;
-            canvas.height = image.height
-            ctx.drawImage(image, 0, 0);
-            const milliseconds = Date.now() - previousRenderTime2;
-            const seconds = milliseconds / 1000;
-            const fps = 1 / seconds;
-            document.getElementById('roverCameraFPS2').innerText = fps;
-            console.log('----------------------');
-            // console.log(`Video 2 mill: ${milliseconds}`);
-            // console.log(`Video 2 sec: ${seconds}`);
-            console.log(`Video 2 FPS: ${fps}`);
-            previousRenderTime2 = Date.now();
-            ALLOW_JIMP_2 = true;
-          };
-          image.src = PREFIX + data;
-        } else {
-          // DEBUG
-          // console.log('Frame was skipped to avoid overworking jimp!');
-        }
-      });
-    </script>
   </body>
 </html>
