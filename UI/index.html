@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'">
     <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'self'"> -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js" integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 
     <title>RoveCrest GUI</title>
@@ -16,8 +17,29 @@
         background-color: orangered !important;
       }
     </style>
-    <nav class="navbar navbar-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
         <a class="navbar-brand" href="#">RoveCrest GUI</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav mr-auto">
+            <li class="nav-item active">
+              <a class="nav-link" href="#">ERT <span class="sr-only">(current)</span></a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="./es.html">ES</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="./auto.html">AUTO</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="./science.html">SCIENCE</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="./roccs.html">roccs</a>
+            </li>
+        </div>
     </nav>
     <div class="row py-3 bg-dark">
       <div class="col-8 h5 text-center text-light"> Rover (Front Camera) </div>
@@ -25,10 +47,11 @@
     </div>
     <div class="row mr-2">
       <div class="col-8">
-        <div class="embed-responsive embed-responsive-16by9">
+        <!-- <div class="embed-responsive embed-responsive-16by9"> -->
           <!-- <iframe src="https://www.youtube.com/watch?v=Dhrv-O9sivI" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe> -->
-          <canvas id="roverCamera"></canvas>
-        </div>
+        <!-- </div> -->
+        <p id="roverCameraFPS"></p>
+        <canvas id="roverCamera"></canvas>
         <!-- <img src="./img/videobuffering.jpg" class="img-fluid" alt="live stream of the rover"> -->
       </div>
       <div class="col-4">
@@ -55,7 +78,6 @@
         <div class="row justify-content-center mt-3">
             <button type="button" class="btn btn-outline-danger">KILL!</button>
         </div>
-        
       </div>
     </div>
     <div class="row py-3 bg-dark">
@@ -65,6 +87,7 @@
     <div class="row">
       <div class="col-6">
         <!-- <img src="./img/videobuffering.jpg" class="img-fluid" alt="live stream of the rover"> -->
+        <p id="roverCameraFPS2"></p>
         <canvas id="roverCamera2"></canvas>
       </div>
       <div class="col-6">
@@ -90,91 +113,5 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
     <script src="./renderer.js"></script>
-    <!-- <script async src="opencv.js" onload="onOpenCvReady();" type="text/javascript"></script> -->
-
-    <script>
-      const {ipcRenderer} = require('electron');
-      const jimp = require('jimp');
-      window.$ = window.cv = require('./opencv.js');
-
-      let previousRenderTime = Date.now();
-      let ALLOW_JIMP = true;
-      ipcRenderer.on('rover', (event, data, _) => {
-        console.log('----------------------');
-        // DEBUG: Print frame data buffer
-        // console.log(data);
-
-        if (ALLOW_JIMP) {
-          ALLOW_JIMP = false;
-          // Load frame data buffer with Jimp
-          jimp.read(Buffer.from(data, 'base64')).then(jimpSrc => {
-            // Create cv.Mat from image using bitmap property
-            const frame = cv.matFromImageData(jimpSrc.bitmap);
-            // Show cv.Mat on the canvas.
-            cv.imshow('roverCamera', frame);
-            // Compute FPS
-            const milliseconds = Date.now() - previousRenderTime;
-            const seconds = milliseconds / 1000;
-            const fps = 1 / seconds;
-            // console.log(`Video 1 mill: ${milliseconds}`);
-            // console.log(`Video 1 sec: ${seconds}`);
-            console.log(`Video 1 FPS: ${fps}`);
-            // Prepare for next FPS calculation
-            previousRenderTime = Date.now();
-
-
-            // Free memory allocated in Emscripten's heap
-            frame.delete();
-
-            // Jimp is free again
-            ALLOW_JIMP = true;
-          })
-          .catch(err => {
-            console.error(err)
-          })
-        } else {
-          // DEBUG
-          // console.log('Frame was skipped to avoid overworking jimp!');
-        }
-      });
-
-      let previousRenderTime2 = Date.now();
-      let ALLOW_JIMP_2 = true;
-      ipcRenderer.on('rover2', (event, data, _) => {
-        // DEBUG: Print frame data buffer
-        // console.log(data);
-
-        if (ALLOW_JIMP_2) {
-          ALLOW_JIMP_2 = false;
-          // Load frame data buffer with Jimp
-          jimp.read(Buffer.from(data, 'base64')).then(jimpSrc => {
-            // Create cv.Mat from image using bitmap property
-            const frame = cv.matFromImageData(jimpSrc.bitmap);
-            // Show cv.Mat on the canvas.
-            cv.imshow('roverCamera2', frame);
-            // Compute FPS
-            const milliseconds = Date.now() - previousRenderTime2;
-            const seconds = milliseconds / 1000;
-            const fps = 1 / seconds;
-            console.log('----------------------');
-            // console.log(`Video 2 mill: ${milliseconds}`);
-            // console.log(`Video 2 sec: ${seconds}`);
-            console.log(`Video 2 FPS: ${fps}`);
-
-            // Free memory allocated in Emscripten's heap
-            frame.delete();
-
-            // Jimp is free again
-            ALLOW_JIMP_2 = true;
-          })
-          .catch(err => {
-            console.error(err)
-          })
-        } else {
-          // DEBUG
-          // console.log('Frame was skipped to avoid overworking jimp!');
-        }
-      });
-    </script>
   </body>
 </html>
