@@ -7,14 +7,22 @@
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
   <title>AI</title>
   <link rel="stylesheet" href="styles.css">
+
+  <!-- Leaflet.js for map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+  integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+  crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+  integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+  crossorigin=""></script>
 </head>
-<body>
+<body class="no-fixed-top">
     <style>
       .navbar{
         background-color: orangered !important;
       }
     </style>
-    <nav class="navbar fixed-top navbar-expand-lg navbar-dark ">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
         <a class="navbar-brand" href="#">RoveCrest GUI</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
@@ -48,8 +56,17 @@
         <img src="./img/videobuffering.jpg" class="img-fluid" alt="camera feed">
       </div>
       <div class="col-6">
-        <img src="./img/radar.png" class="img-fluid" alt="current map">
+        <div id="mapid"></div>
+        <form id="gps-demo">
+          <label for="latiude">latitude</label>
+          <input type="number" name="latitude" id="latitude" value="51.505">
+          <label for="longitude">longitude</label>
+          <input type="number" name="longitude" id="longitude" value="-0.09">
+          <input type="submit" value="Update map!">
+        </form>
       </div>
     </div>
+
+    <script src="ai.js"></script>
 </body>
 </html>
